@@ -45,4 +45,4 @@
 1. 确保已安装 Python 3.x。
 2. 克隆本仓库到本地：
    ```bash
-   git clone git clone https://github.com/LeviCwiw/ConPla_txt.git
+   git clone https://github.com/LeviCwiw/ConPla_txt.git

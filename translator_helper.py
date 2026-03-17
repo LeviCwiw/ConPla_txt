@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import ctypes
 import os
+import webbrowser
 
 # ==========================================
 # 开启高 DPI 高清缩放支持
@@ -17,7 +18,12 @@ class TranslationFormatter:
     def __init__(self, root):
         self.root = root
         self.root.title("ConPla txt")
-        self.root.geometry("900x700")
+        self.root.geometry("900x750")
+
+        # --- V1.1 新增：专属版本信息 ---
+        self.version = "V1.1"
+        self.author = "LeviCwiw"
+        self.github_url = "https://github.com/LeviCwiw/ConPla_txt"
 
         icon_path = "app_icon.ico"
         if os.path.exists(icon_path):
@@ -36,17 +42,42 @@ class TranslationFormatter:
         self.search_start_index = "1.0"
         self.last_search_term = ""
 
+        # 初始化界面
+        self.setup_menu()  # V1.1 新增：加载菜单栏
         self.setup_ui()
         self.load_last_save_path()
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    # --- V1.1 新增：菜单栏与关于窗口 ---
+    def setup_menu(self):
+        self.menu_bar = tk.Menu(self.root)
+
+        help_menu = tk.Menu(self.menu_bar, tearoff=0)
+        help_menu.add_command(label="关于 ConPla txt", command=self.show_about)
+        help_menu.add_separator()
+        help_menu.add_command(label="访问 GitHub 主页", command=lambda: webbrowser.open(self.github_url))
+
+        self.menu_bar.add_cascade(label="帮助", menu=help_menu)
+        self.root.config(menu=self.menu_bar)
+
+    def show_about(self):
+        about_text = (
+            f"ConPla txt - 轻小说/网文翻译专属工作台\n"
+            f"-----------------------------------------\n\n"
+            f"当前版本：{self.version}\n"
+            f"软件作者：{self.author}\n\n"
+            f"“将翻译排版与存储分离，专注每一段文字的精修。”\n\n"
+            f"项目主页已开源至 GitHub，欢迎访问并获取最新更新。"
+        )
+        messagebox.showinfo("关于软件", about_text)
+
+    # --- 核心 UI 设置 ---
     def setup_ui(self):
         btn_style = {"relief": "flat", "font": (self.font_family, 10), "cursor": "hand2", "bd": 0, "pady": 5,
                      "padx": 10}
         self.standard_buttons = []
 
-        # === 1. 顶部栏 ===
         self.top_frame = tk.Frame(self.root, pady=12, padx=15)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 10))
 
@@ -73,7 +104,6 @@ class TranslationFormatter:
         self.zoom_label = tk.Label(self.top_frame, text="视图缩放:", font=(self.font_family, 10))
         self.zoom_label.pack(side=tk.RIGHT, padx=5)
 
-        # === 2. 工具栏 ===
         self.toolbar_frame = tk.Frame(self.root, pady=5)
         self.toolbar_frame.pack(side=tk.TOP, fill=tk.X, padx=15)
 
@@ -91,7 +121,6 @@ class TranslationFormatter:
                                   padx=15)
         self.btn_save.pack(side=tk.RIGHT, padx=(10, 0))
 
-        # === 3. 搜索与替换栏 ===
         self.search_frame = tk.Frame(self.root, pady=5)
         self.search_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 5))
 
@@ -113,7 +142,6 @@ class TranslationFormatter:
         self.btn_replace = tk.Button(self.search_frame, text="🔄 全部替换", command=self.replace_all_text, **btn_style)
         self.btn_replace.pack(side=tk.LEFT)
 
-        # === 4. 底部栏 (优先贴底) ===
         self.bottom_frame = tk.Frame(self.root)
         self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=5)
 
@@ -123,7 +151,6 @@ class TranslationFormatter:
         self.stats_label = tk.Label(self.bottom_frame, text="第 1 行, 第 0 列 | 共 0 字符", font=(self.font_family, 9))
         self.stats_label.pack(side=tk.RIGHT)
 
-        # === 5. 主体编辑区 ===
         self.mid_frame = tk.Frame(self.root)
         self.mid_frame.pack(side=tk.TOP, expand=True, fill=tk.BOTH, padx=15, pady=5)
 
@@ -142,8 +169,10 @@ class TranslationFormatter:
         self.text_editor.pack(expand=True, fill=tk.BOTH)
         scroll.config(command=self.text_editor.yview)
 
-        # 提前注册搜索高亮标签，防止置顶时报错
-        self.text_editor.tag_configure("search_highlight")
+        try:
+            self.text_editor.tag_configure("search_highlight")
+        except:
+            pass
 
         self.text_editor.bind("<KeyRelease>", self.update_editor_status)
         self.text_editor.bind("<ButtonRelease-1>", self.update_editor_status)
@@ -155,7 +184,6 @@ class TranslationFormatter:
         self.update_editor_status()
 
     # --- 颜色与主题 ---
-
     def toggle_theme(self):
         self.is_dark_mode = not self.is_dark_mode
         self.apply_theme_colors()
@@ -208,7 +236,6 @@ class TranslationFormatter:
                                    selectbackground=sel_bg, selectforeground=sel_fg)
         self.text_editor.tag_configure("current_line", background=hl_line)
 
-        # 核心保护：使用 try-except 安全地置顶标签图层
         try:
             self.text_editor.tag_raise("sel")
             self.text_editor.tag_raise("search_highlight")
@@ -218,8 +245,7 @@ class TranslationFormatter:
         for btn in self.standard_buttons:
             btn.configure(bg=btn_bg, fg=btn_fg)
 
-    # --- 核心操作 ---
-
+    # --- 功能实现区 ---
     def find_next(self):
         search_term = self.search_entry.get()
         if not search_term:
@@ -329,10 +355,8 @@ class TranslationFormatter:
             cursor_pos = self.text_editor.index(tk.INSERT)
             curr_line = cursor_pos.split('.')[0]
             curr_col = cursor_pos.split('.')[1]
-
             content = self.text_editor.get("1.0", "end-1c")
-            char_count = len(content)
-            self.stats_label.config(text=f"第 {curr_line} 行, 第 {curr_col} 列 | 共 {char_count} 字符")
+            self.stats_label.config(text=f"第 {curr_line} 行, 第 {curr_col} 列 | 共 {len(content)} 字符")
         except:
             pass
 
@@ -364,7 +388,7 @@ class TranslationFormatter:
 
     def select_target_file(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")],
-                                                 title="选择或创建保存译文的txt文件")
+                                                 title="选择保存译文的文件")
         if file_path:
             self.target_file = file_path
             self.target_label.config(text=f"当前目标: {file_path}", fg="#10B981")

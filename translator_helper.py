@@ -17,11 +17,10 @@ except Exception:
 class TranslationFormatter:
     def __init__(self, root):
         self.root = root
-        self.root.title("ConPla txt")
+        self.root.title("ConPla txt - 极简工作台")
         self.root.geometry("900x750")
 
-        # --- V1.1 新增：专属版本信息 ---
-        self.version = "V1.1"
+        self.version = "V1.2"
         self.author = "LeviCwiw"
         self.github_url = "https://github.com/LeviCwiw/ConPla_txt"
 
@@ -41,24 +40,54 @@ class TranslationFormatter:
         self.is_dark_mode = False
         self.search_start_index = "1.0"
         self.last_search_term = ""
+        self.search_panel_visible = False  # 记录查找面板是否显示
 
         # 初始化界面
-        self.setup_menu()  # V1.1 新增：加载菜单栏
+        self.setup_menu()  # 加载新版全局菜单栏
         self.setup_ui()
         self.load_last_save_path()
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    # --- V1.1 新增：菜单栏与关于窗口 ---
+    # --- 新版全局菜单栏 ---
     def setup_menu(self):
         self.menu_bar = tk.Menu(self.root)
 
+        # 1. 文件菜单
+        file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        file_menu.add_command(label="📁 设置/修改保存的 TXT 文件", command=self.select_target_file)
+        file_menu.add_separator()
+        file_menu.add_command(label="❌ 退出", command=self.on_closing)
+        self.menu_bar.add_cascade(label="文件", menu=file_menu)
+
+        # 2. 编辑菜单
+        edit_menu = tk.Menu(self.menu_bar, tearoff=0)
+        edit_menu.add_command(label="✨ 智能首行缩进", command=self.format_indent)
+        edit_menu.add_command(label="↩️ 撤销 (Ctrl+Z)", command=self.undo_action)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="🧹 仅清空输入区", command=self.clear_text)
+        self.menu_bar.add_cascade(label="编辑", menu=edit_menu)
+
+        # 3. 查找菜单
+        search_menu = tk.Menu(self.menu_bar, tearoff=0)
+        search_menu.add_command(label="🔍 展开/收起 查找与替换 (Ctrl+F)", command=self.toggle_search_panel)
+        self.menu_bar.add_cascade(label="查找", menu=search_menu)
+
+        # 4. 视图菜单
+        self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.view_menu.add_command(label="➕ 放大视图字体 (A+)", command=lambda: self.change_font_size(2))
+        self.view_menu.add_command(label="➖ 缩小视图字体 (A-)", command=lambda: self.change_font_size(-2))
+        self.view_menu.add_separator()
+        self.view_menu.add_command(label="🌙 切换夜间模式", command=self.toggle_theme)
+        self.menu_bar.add_cascade(label="视图", menu=self.view_menu)
+
+        # 5. 帮助菜单
         help_menu = tk.Menu(self.menu_bar, tearoff=0)
         help_menu.add_command(label="关于 ConPla txt", command=self.show_about)
         help_menu.add_separator()
         help_menu.add_command(label="访问 GitHub 主页", command=lambda: webbrowser.open(self.github_url))
-
         self.menu_bar.add_cascade(label="帮助", menu=help_menu)
+
         self.root.config(menu=self.menu_bar)
 
     def show_about(self):
@@ -72,57 +101,26 @@ class TranslationFormatter:
         )
         messagebox.showinfo("关于软件", about_text)
 
-    # --- 核心 UI 设置 ---
+    # --- 核心 UI 设置 (极致精简版) ---
     def setup_ui(self):
         btn_style = {"relief": "flat", "font": (self.font_family, 10), "cursor": "hand2", "bd": 0, "pady": 5,
                      "padx": 10}
-        self.standard_buttons = []
 
+        # 顶部核心框架：只保留目标文件提示和保存按钮
         self.top_frame = tk.Frame(self.root, pady=12, padx=15)
-        self.top_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 10))
+        self.top_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
 
-        btn_file = tk.Button(self.top_frame, text="📁 设置/修改保存的 TXT 文件", command=self.select_target_file,
-                             **btn_style)
-        btn_file.pack(side=tk.LEFT)
-        self.standard_buttons.append(btn_file)
+        self.target_label = tk.Label(self.top_frame, text="⚠️ 未选择目标 TXT 文件 (请先在菜单栏[文件]中设置)",
+                                     fg="#EF4444", font=(self.font_family, 10, "bold"))
+        self.target_label.pack(side=tk.LEFT)
 
-        self.target_label = tk.Label(self.top_frame, text="未选择目标 TXT 文件", fg="#EF4444",
-                                     font=(self.font_family, 10, "bold"))
-        self.target_label.pack(side=tk.LEFT, padx=15)
+        self.btn_save = tk.Button(self.top_frame, text="💾 保存并清空 (Ctrl+Enter)", command=self.save_and_clear,
+                                  font=(self.font_family, 10, "bold"), relief="flat", cursor="hand2", bd=0, pady=6,
+                                  padx=20)
+        self.btn_save.pack(side=tk.RIGHT)
 
-        self.theme_btn = tk.Button(self.top_frame, text="🌙 夜间模式", command=self.toggle_theme, **btn_style)
-        self.theme_btn.pack(side=tk.RIGHT, padx=(10, 0))
-
-        btn_up = tk.Button(self.top_frame, text=" A+ ", command=lambda: self.change_font_size(2), **btn_style)
-        btn_up.pack(side=tk.RIGHT, padx=(0, 5))
-        self.standard_buttons.append(btn_up)
-
-        btn_down = tk.Button(self.top_frame, text=" A- ", command=lambda: self.change_font_size(-2), **btn_style)
-        btn_down.pack(side=tk.RIGHT, padx=5)
-        self.standard_buttons.append(btn_down)
-
-        self.zoom_label = tk.Label(self.top_frame, text="视图缩放:", font=(self.font_family, 10))
-        self.zoom_label.pack(side=tk.RIGHT, padx=5)
-
-        self.toolbar_frame = tk.Frame(self.root, pady=5)
-        self.toolbar_frame.pack(side=tk.TOP, fill=tk.X, padx=15)
-
-        self.btn_indent = tk.Button(self.toolbar_frame, text="✨ 智能首行缩进", command=self.format_indent, **btn_style)
-        self.btn_indent.pack(side=tk.LEFT, padx=(0, 8))
-
-        self.btn_undo = tk.Button(self.toolbar_frame, text="↩️ 撤销 (Ctrl+Z)", command=self.undo_action, **btn_style)
-        self.btn_undo.pack(side=tk.LEFT, padx=8)
-
-        self.btn_clear = tk.Button(self.toolbar_frame, text="🧹 仅清空", command=self.clear_text, **btn_style)
-        self.btn_clear.pack(side=tk.RIGHT)
-
-        self.btn_save = tk.Button(self.toolbar_frame, text="💾 保存并清空 (Ctrl+Enter)", command=self.save_and_clear,
-                                  font=(self.font_family, 10, "bold"), relief="flat", cursor="hand2", bd=0, pady=5,
-                                  padx=15)
-        self.btn_save.pack(side=tk.RIGHT, padx=(10, 0))
-
+        # 隐藏式的搜索替换框架 (默认不 pack 显示)
         self.search_frame = tk.Frame(self.root, pady=5)
-        self.search_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 5))
 
         self.search_label1 = tk.Label(self.search_frame, text="查找:", font=(self.font_family, 10))
         self.search_label1.pack(side=tk.LEFT)
@@ -142,6 +140,7 @@ class TranslationFormatter:
         self.btn_replace = tk.Button(self.search_frame, text="🔄 全部替换", command=self.replace_all_text, **btn_style)
         self.btn_replace.pack(side=tk.LEFT)
 
+        # 底部状态栏框架
         self.bottom_frame = tk.Frame(self.root)
         self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=5)
 
@@ -151,11 +150,9 @@ class TranslationFormatter:
         self.stats_label = tk.Label(self.bottom_frame, text="第 1 行, 第 0 列 | 共 0 字符", font=(self.font_family, 9))
         self.stats_label.pack(side=tk.RIGHT)
 
+        # 中间编辑区
         self.mid_frame = tk.Frame(self.root)
         self.mid_frame.pack(side=tk.TOP, expand=True, fill=tk.BOTH, padx=15, pady=5)
-
-        self.hint_label = tk.Label(self.mid_frame, text="在此输入译文：", font=(self.font_family, 10, "bold"))
-        self.hint_label.pack(anchor=tk.W, pady=(0, 5))
 
         self.text_container = tk.Frame(self.mid_frame, highlightthickness=1)
         self.text_container.pack(expand=True, fill=tk.BOTH)
@@ -165,7 +162,7 @@ class TranslationFormatter:
 
         self.text_editor = tk.Text(self.text_container, font=(self.font_family, self.current_font_size), wrap=tk.CHAR,
                                    yscrollcommand=scroll.set, undo=True, maxundo=-1,
-                                   relief="flat", bd=0, padx=10, pady=10, spacing1=4, spacing3=4)
+                                   relief="flat", bd=0, padx=15, pady=15, spacing1=6, spacing3=6)
         self.text_editor.pack(expand=True, fill=tk.BOTH)
         scroll.config(command=self.text_editor.yview)
 
@@ -174,14 +171,25 @@ class TranslationFormatter:
         except:
             pass
 
+        # 事件绑定
         self.text_editor.bind("<KeyRelease>", self.update_editor_status)
         self.text_editor.bind("<ButtonRelease-1>", self.update_editor_status)
         self.text_editor.bind("<FocusIn>", self.update_editor_status)
 
         self.root.bind("<Control-Return>", lambda event: self.shortcut_save())
+        self.root.bind("<Control-f>", lambda event: self.toggle_search_panel())  # 快捷键呼出查找替换
 
         self.apply_theme_colors()
         self.update_editor_status()
+
+    # --- 搜索面板呼出逻辑 ---
+    def toggle_search_panel(self):
+        if self.search_panel_visible:
+            self.search_frame.pack_forget()
+            self.search_panel_visible = False
+        else:
+            self.search_frame.pack(after=self.top_frame, side=tk.TOP, fill=tk.X, padx=15, pady=(0, 5))
+            self.search_panel_visible = True
 
     # --- 颜色与主题 ---
     def toggle_theme(self):
@@ -195,10 +203,7 @@ class TranslationFormatter:
             entry_bg, entry_fg, entry_border = "#3F3F46", "#F4F4F5", "#71717A"
             sel_bg, sel_fg = "#0284C7", "#FFFFFF"
 
-            self.theme_btn.config(text="☀️ 日间模式", bg=btn_bg, fg=btn_fg)
-            self.btn_indent.config(bg="#1E3A8A", fg="#DBEAFE", activebackground="#1E40AF")
-            self.btn_undo.config(bg="#78350F", fg="#FEF3C7", activebackground="#92400E")
-            self.btn_clear.config(bg="#831843", fg="#FCE7F3", activebackground="#9D174D")
+            self.view_menu.entryconfig(3, label="☀️ 切换日间模式")
             self.btn_find.config(bg="#065F46", fg="#D1FAE5", activebackground="#047857")
             self.btn_replace.config(bg="#312E81", fg="#E0E7FF", activebackground="#3730A3")
             self.btn_save.config(bg="#059669", fg="#FFFFFF", activebackground="#047857")
@@ -208,23 +213,20 @@ class TranslationFormatter:
             entry_bg, entry_fg, entry_border = "#FFFFFF", "#000000", "#D1D5DB"
             sel_bg, sel_fg = "#93C5FD", "#000000"
 
-            self.theme_btn.config(text="🌙 夜间模式", bg=btn_bg, fg=btn_fg)
-            self.btn_indent.config(bg="#DBEAFE", fg="#1E40AF", activebackground="#BFDBFE")
-            self.btn_undo.config(bg="#FEF3C7", fg="#92400E", activebackground="#FDE68A")
-            self.btn_clear.config(bg="#FCE7F3", fg="#9D174D", activebackground="#FBCFE8")
+            self.view_menu.entryconfig(3, label="🌙 切换夜间模式")
             self.btn_find.config(bg="#D1FAE5", fg="#065F46", activebackground="#A7F3D0")
             self.btn_replace.config(bg="#E0E7FF", fg="#3730A3", activebackground="#C7D2FE")
             self.btn_save.config(bg="#10B981", fg="white", activebackground="#059669")
 
         self.root.configure(bg=bg_main)
-        for frame in [self.top_frame, self.toolbar_frame, self.search_frame, self.mid_frame, self.bottom_frame]:
+        for frame in [self.top_frame, self.search_frame, self.mid_frame, self.bottom_frame]:
             frame.configure(bg=bg_main)
+
         self.top_frame.configure(bg=bg_sec)
         self.text_container.configure(bg=bg_text, highlightbackground=bg_sec)
 
-        self.zoom_label.configure(bg=bg_sec, fg=fg_text)
         self.target_label.configure(bg=bg_sec)
-        for label in [self.hint_label, self.search_label1, self.search_label2, self.status_label, self.stats_label]:
+        for label in [self.search_label1, self.search_label2, self.status_label, self.stats_label]:
             label.configure(bg=bg_main, fg=fg_text)
 
         self.search_entry.configure(bg=entry_bg, fg=entry_fg, insertbackground=entry_fg,
@@ -241,9 +243,6 @@ class TranslationFormatter:
             self.text_editor.tag_raise("search_highlight")
         except tk.TclError:
             pass
-
-        for btn in self.standard_buttons:
-            btn.configure(bg=btn_bg, fg=btn_fg)
 
     # --- 功能实现区 ---
     def find_next(self):
@@ -304,6 +303,7 @@ class TranslationFormatter:
         self.text_editor.yview_moveto(scroll_pos[0])
         self.text_editor.see(tk.INSERT)
 
+        self.show_status_message("✨ 智能首行缩进完毕！", "#10B981")
         self.update_editor_status()
 
     def replace_all_text(self):
@@ -399,6 +399,7 @@ class TranslationFormatter:
         if self.current_font_size < 8: self.current_font_size = 8
         if self.current_font_size > 40: self.current_font_size = 40
         self.text_editor.config(font=(self.font_family, self.current_font_size))
+        self.show_status_message(f"字号已调整为 {self.current_font_size}", "#10B981")
 
     def clear_text(self):
         self.text_editor.delete("1.0", tk.END)
@@ -419,7 +420,7 @@ class TranslationFormatter:
 
     def save_and_clear(self):
         if not self.target_file:
-            messagebox.showwarning("提示", "请先在左上角设置保存的 TXT 文件！")
+            messagebox.showwarning("提示", "请先在上方菜单栏【文件】中设置保存的 TXT 文件！")
             return
 
         text_to_save = self.text_editor.get("1.0", "end-1c").rstrip('\n')

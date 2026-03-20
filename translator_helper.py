@@ -20,7 +20,7 @@ class TranslationFormatter:
         self.root.title("ConPla txt - 极简工作台")
         self.root.geometry("900x750")
 
-        self.version = "V1.4"
+        self.version = "V1.5"
         self.author = "LeviCwiw"
         self.github_url = "https://github.com/LeviCwiw/ConPla_txt"
 
@@ -32,7 +32,9 @@ class TranslationFormatter:
                 pass
 
         self.target_file = None
-        self.font_family = "Microsoft YaHei"
+
+        # 【终极修复】默认改为最不容易出现日文异形字 BUG 的黑体 (SimHei)
+        self.font_family = "SimHei"
         self.current_font_size = 12
         self._timer = None
         self.config_file = "app_config.txt"
@@ -79,10 +81,23 @@ class TranslationFormatter:
         search_menu.add_command(label="🔍 展开/收起 查找与替换 (Ctrl+F)", command=self.toggle_search_panel)
         self.menu_bar.add_cascade(label="查找", menu=search_menu)
 
-        # 4. 视图菜单 (加入自定义背景主题选项)
+        # 4. 视图菜单 (加入自定义背景主题与【字体切换】选项)
         self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.view_menu.add_command(label="➕ 放大视图字体 (A+)", command=lambda: self.change_font_size(2))
         self.view_menu.add_command(label="➖ 缩小视图字体 (A-)", command=lambda: self.change_font_size(-2))
+        self.view_menu.add_separator()
+
+        # ==========================================
+        # 【新增】防异形字：一键切换编辑器字体菜单
+        # ==========================================
+        font_menu = tk.Menu(self.view_menu, tearoff=0)
+        font_menu.add_command(label="黑体 (防异形字极佳)", command=lambda: self.set_font_family("SimHei"))
+        font_menu.add_command(label="微软雅黑", command=lambda: self.set_font_family("Microsoft YaHei"))
+        font_menu.add_command(label="微软雅黑 UI", command=lambda: self.set_font_family("Microsoft YaHei UI"))
+        font_menu.add_command(label="宋体", command=lambda: self.set_font_family("SimSun"))
+        font_menu.add_command(label="楷体", command=lambda: self.set_font_family("KaiTi"))
+        self.view_menu.add_cascade(label="🅰️ 切换显示字体 (解决繁简混合/异形字)", menu=font_menu)
+
         self.view_menu.add_separator()
         self.view_menu.add_command(label="🌙 切换夜间模式", command=self.toggle_theme)
         self.view_menu.add_separator()
@@ -109,38 +124,33 @@ class TranslationFormatter:
             f"-----------------------------------------\n\n"
             f"当前版本：{self.version}\n"
             f"软件作者：{self.author}\n\n"
-            f"新增功能：\n- 日语标点快捷输入栏\n- 自由换背景/透明度/主题\n\n"
             f"“将翻译排版与存储分离，专注每一段文字的精修。”"
         )
         messagebox.showinfo("关于软件", about_text)
 
     # --- 核心 UI 设置 ---
     def setup_ui(self):
-        # 最底层的图片背景标签 (默认不可见，设置壁纸后显示)
         self.bg_label = tk.Label(self.root, bd=0)
         self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
         self.bg_label.lower()
 
-        btn_style = {"relief": "flat", "font": (self.font_family, 10), "cursor": "hand2", "bd": 0, "pady": 5,
+        btn_style = {"relief": "flat", "font": ("Microsoft YaHei", 10), "cursor": "hand2", "bd": 0, "pady": 5,
                      "padx": 10}
 
-        # 顶部核心框架
         self.top_frame = tk.Frame(self.root, pady=12, padx=15)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
 
         self.target_label = tk.Label(self.top_frame, text="⚠️ 未选择目标 TXT 文件 (请先在菜单栏[文件]中设置)",
-                                     fg="#EF4444", font=(self.font_family, 10, "bold"))
+                                     fg="#EF4444", font=("Microsoft YaHei", 10, "bold"))
         self.target_label.pack(side=tk.LEFT)
 
         self.btn_save = tk.Button(self.top_frame, text="💾 保存并清空 (Ctrl+Enter)", command=self.save_and_clear,
-                                  font=(self.font_family, 10, "bold"), relief="flat", cursor="hand2", bd=0, pady=6,
+                                  font=("Microsoft YaHei", 10, "bold"), relief="flat", cursor="hand2", bd=0, pady=6,
                                   padx=20)
         self.btn_save.pack(side=tk.RIGHT)
 
-        # 隐藏式的搜索替换框架
         self.search_frame = tk.Frame(self.root, pady=5)
-
-        self.search_label1 = tk.Label(self.search_frame, text="查找:", font=(self.font_family, 10))
+        self.search_label1 = tk.Label(self.search_frame, text="查找:", font=("Microsoft YaHei", 10))
         self.search_label1.pack(side=tk.LEFT)
         self.search_entry = tk.Entry(self.search_frame, width=16, font=(self.font_family, 11), relief="flat",
                                      highlightthickness=1)
@@ -149,7 +159,7 @@ class TranslationFormatter:
         self.btn_find = tk.Button(self.search_frame, text="🔍 查找下一个", command=self.find_next, **btn_style)
         self.btn_find.pack(side=tk.LEFT, padx=(0, 15))
 
-        self.search_label2 = tk.Label(self.search_frame, text="替换为:", font=(self.font_family, 10))
+        self.search_label2 = tk.Label(self.search_frame, text="替换为:", font=("Microsoft YaHei", 10))
         self.search_label2.pack(side=tk.LEFT)
         self.replace_entry = tk.Entry(self.search_frame, width=16, font=(self.font_family, 11), relief="flat",
                                       highlightthickness=1)
@@ -158,24 +168,32 @@ class TranslationFormatter:
         self.btn_replace = tk.Button(self.search_frame, text="🔄 全部替换", command=self.replace_all_text, **btn_style)
         self.btn_replace.pack(side=tk.LEFT)
 
-        # 中间编辑区框架
+        # 锁定在最底部的状态栏
+        self.bottom_frame = tk.Frame(self.root)
+        self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=5)
+
+        self.status_label = tk.Label(self.bottom_frame, text="", font=("Microsoft YaHei", 10, "bold"))
+        self.status_label.pack(side=tk.LEFT)
+
+        self.stats_label = tk.Label(self.bottom_frame, text="第 1 行, 第 0 列 | 共 0 字符", font=("Microsoft YaHei", 9))
+        self.stats_label.pack(side=tk.RIGHT)
+
+        # 中间可扩展的编辑区
         self.mid_frame = tk.Frame(self.root)
         self.mid_frame.pack(side=tk.TOP, expand=True, fill=tk.BOTH, padx=15, pady=5)
 
-        # 常用日文标点快捷栏
         self.punct_frame = tk.Frame(self.mid_frame)
         self.punct_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
 
         punctuations = [("「」", "「", "」"), ("『』", "『", "』"), ("【】", "【", "】"), ("《》", "《", "》"), ("（）", "（", "）")]
         self.punct_btns = []
         for text, l_char, r_char in punctuations:
-            btn = tk.Button(self.punct_frame, text=text, font=(self.font_family, 10), relief="flat", cursor="hand2",
+            btn = tk.Button(self.punct_frame, text=text, font=("Microsoft YaHei", 10), relief="flat", cursor="hand2",
                             bd=0, padx=8, pady=2,
                             command=lambda l=l_char, r=r_char: self.insert_punctuation(l, r))
             btn.pack(side=tk.LEFT, padx=(0, 8))
             self.punct_btns.append(btn)
 
-        # 文本框
         self.text_container = tk.Frame(self.mid_frame, highlightthickness=1)
         self.text_container.pack(expand=True, fill=tk.BOTH)
 
@@ -193,34 +211,28 @@ class TranslationFormatter:
         except:
             pass
 
-        # 底部状态栏框架
-        self.bottom_frame = tk.Frame(self.root)
-        self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=5)
-
-        self.status_label = tk.Label(self.bottom_frame, text="", font=(self.font_family, 10, "bold"))
-        self.status_label.pack(side=tk.LEFT)
-
-        self.stats_label = tk.Label(self.bottom_frame, text="第 1 行, 第 0 列 | 共 0 字符", font=(self.font_family, 9))
-        self.stats_label.pack(side=tk.RIGHT)
-
-        # 事件绑定
         self.text_editor.bind("<KeyRelease>", self.update_editor_status)
         self.text_editor.bind("<ButtonRelease-1>", self.update_editor_status)
         self.text_editor.bind("<FocusIn>", self.update_editor_status)
-
         self.root.bind("<Control-Return>", lambda event: self.shortcut_save())
         self.root.bind("<Control-f>", lambda event: self.toggle_search_panel())
 
         self.apply_theme_colors()
         self.update_editor_status()
 
-    # --- 快捷插入标点并移动光标 ---
+    # --- 切换字体功能 ---
+    def set_font_family(self, font_name):
+        self.font_family = font_name
+        self.text_editor.config(font=(self.font_family, self.current_font_size))
+        self.search_entry.config(font=(self.font_family, 11))
+        self.replace_entry.config(font=(self.font_family, 11))
+        self.show_status_message(f"🅰️ 字体已切换为: {font_name}", "#10B981")
+
     def insert_punctuation(self, left_char, right_char):
         self.text_editor.insert(tk.INSERT, left_char + right_char)
         self.text_editor.mark_set(tk.INSERT, "insert-1c")
         self.text_editor.focus()
 
-    # --- 搜索面板呼出逻辑 ---
     def toggle_search_panel(self):
         if self.search_panel_visible:
             self.search_frame.pack_forget()
@@ -229,7 +241,6 @@ class TranslationFormatter:
             self.search_frame.pack(after=self.top_frame, side=tk.TOP, fill=tk.X, padx=15, pady=(0, 5))
             self.search_panel_visible = True
 
-    # --- 自由换背景/主题系统 ---
     def choose_bg_color(self):
         color = colorchooser.askcolor(title="选择编辑器背景色")[1]
         if color:
@@ -248,19 +259,18 @@ class TranslationFormatter:
             try:
                 self.bg_photo = tk.PhotoImage(file=file_path)
                 self.bg_label.config(image=self.bg_photo)
-                # 增大编辑区的边距，使得后面的图片壁纸透出来
                 self.mid_frame.pack_configure(padx=80, pady=30)
                 self.show_status_message("🖼️ 边缘壁纸已设置！", "#10B981")
             except Exception as e:
-                messagebox.showerror("错误", f"加载图片失败 (目前仅支持PNG/GIF):\n{e}")
+                messagebox.showerror("错误", f"加载图片失败:\n{e}")
 
     def toggle_transparency(self):
         if self.transparency_level == 1.0:
             self.transparency_level = 0.85
-            self.show_status_message("🪟 已开启窗口半透明", "#10B981")
+            self.show_status_message("🪟 已开启半透明", "#10B981")
         else:
             self.transparency_level = 1.0
-            self.show_status_message("🪟 已关闭窗口半透明", "#10B981")
+            self.show_status_message("🪟 已关闭半透明", "#10B981")
         self.root.attributes("-alpha", self.transparency_level)
 
     def reset_theme(self):
@@ -268,7 +278,7 @@ class TranslationFormatter:
         self.custom_fg = None
         self.bg_photo = None
         self.bg_label.config(image="")
-        self.mid_frame.pack_configure(padx=15, pady=5)  # 恢复默认边距
+        self.mid_frame.pack_configure(padx=15, pady=5)
         if self.transparency_level != 1.0:
             self.toggle_transparency()
         self.apply_theme_colors()
@@ -279,13 +289,12 @@ class TranslationFormatter:
         self.apply_theme_colors()
 
     def apply_theme_colors(self):
-        # 1. 基础模式颜色配置
         if self.is_dark_mode:
             bg_main, bg_sec, fg_text, bg_text, hl_line = "#1E1E1E", "#252526", "#D4D4D4", "#1E1E1E", "#2D2D30"
             btn_bg, btn_fg = "#333333", "#CCCCCC"
             entry_bg, entry_fg, entry_border = "#3F3F46", "#F4F4F5", "#71717A"
             sel_bg, sel_fg = "#0284C7", "#FFFFFF"
-            self.view_menu.entryconfig(3, label="☀️ 切换日间模式")
+            self.view_menu.entryconfig(5, label="☀️ 切换日间模式")
             self.btn_find.config(bg="#065F46", fg="#D1FAE5", activebackground="#047857")
             self.btn_replace.config(bg="#312E81", fg="#E0E7FF", activebackground="#3730A3")
             self.btn_save.config(bg="#059669", fg="#FFFFFF", activebackground="#047857")
@@ -294,19 +303,17 @@ class TranslationFormatter:
             btn_bg, btn_fg = "#E5E7EB", "black"
             entry_bg, entry_fg, entry_border = "#FFFFFF", "#000000", "#D1D5DB"
             sel_bg, sel_fg = "#93C5FD", "#000000"
-            self.view_menu.entryconfig(3, label="🌙 切换夜间模式")
+            self.view_menu.entryconfig(5, label="🌙 切换夜间模式")
             self.btn_find.config(bg="#D1FAE5", fg="#065F46", activebackground="#A7F3D0")
             self.btn_replace.config(bg="#E0E7FF", fg="#3730A3", activebackground="#C7D2FE")
             self.btn_save.config(bg="#10B981", fg="white", activebackground="#059669")
 
-        # 2. 覆盖用户自定义配置
         if self.custom_bg:
             bg_text = self.custom_bg
-            hl_line = self.custom_bg  # 如果自定义了背景，当前行高亮设为一致，防冲突
+            hl_line = self.custom_bg
         if self.custom_fg:
             fg_text = self.custom_fg
 
-        # 3. 应用颜色
         self.root.configure(bg=bg_main)
         self.bg_label.configure(bg=bg_main)
 
@@ -328,8 +335,8 @@ class TranslationFormatter:
         self.replace_entry.configure(bg=entry_bg, fg=entry_fg, insertbackground=entry_fg,
                                      highlightbackground=entry_border)
 
-        self.text_editor.configure(bg=bg_text, fg=fg_text, insertbackground=fg_text,
-                                   selectbackground=sel_bg, selectforeground=sel_fg)
+        self.text_editor.configure(bg=bg_text, fg=fg_text, insertbackground=fg_text, selectbackground=sel_bg,
+                                   selectforeground=sel_fg)
         self.text_editor.tag_configure("current_line", background=hl_line)
 
         try:
@@ -338,7 +345,6 @@ class TranslationFormatter:
         except tk.TclError:
             pass
 
-    # --- 功能实现区 ---
     def find_next(self):
         search_term = self.search_entry.get()
         if not search_term:
@@ -357,7 +363,6 @@ class TranslationFormatter:
             self.text_editor.tag_add("search_highlight", pos, end_pos)
             self.text_editor.tag_config("search_highlight", background="#FDE047", foreground="black")
             self.text_editor.see(pos)
-
             line_num = pos.split('.')[0]
             self.show_status_message(f"📍 已定位匹配项：第 {line_num} 行", "#10B981")
             self.search_start_index = end_pos
